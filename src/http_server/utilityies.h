@@ -34,3 +34,4 @@ N
 #define NARG(...) NARG_(__VA_ARGS__, RSEQ_N)
 
 uv_buf_t buf_copy(uv_buf_t*);
+uv_buf_t buf_create(size_t s);

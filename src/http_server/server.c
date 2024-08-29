@@ -7,9 +7,20 @@
 #include <asm-generic/socket.h>
 #include "middleware.h"
 #include "context.h"
+#include "pool.h"
+
+struct server_context_s {
+    bufpool* buf_pool;
+};
+
+struct client_context_s {
+    bufpool* buf_pool;
+    context* ctx;
+};
 
 
 void on_close(uv_handle_t *h) {
+    free(h->data);
     free(h);
 }
 
@@ -40,34 +51,37 @@ void after_write(uv_write_t* req, int status) {
 //     uv_write((uv_write_t*)wr, client, &(wr->b), nread, after_write);
 // }
 
+void __unattach_ctx_from_client(context* ctx) {
+    client_context* cc = (client_context*)ctx_get_client(ctx)->data;
+    cc->ctx = NULL; 
+}
+
 void tcp_on_read(uv_stream_t* client, ssize_t nread, const uv_buf_t* buf) {
+    client_context* cc = (client_context*)client->data;
     if (nread < 0) {
         if (nread != UV_EOF) {
             fprintf(stderr, "read data error: %s\n", uv_strerror(nread));
         } else {
-            if (client->data != NULL) {
-                context* ctx = (context*)client->data;
-                ctx_done(ctx);
+            if (cc->ctx != NULL) {
+                ctx_done(cc->ctx);
             }
         }
         uv_close((uv_handle_t*)client, on_close);
         return;
     }
-    
-    context* ctx = NULL;
-    if (client->data != NULL) {
-        ctx = (context*)client->data;
-        ctx_append(ctx, buf, nread);
+
+    client_context* cc = (client_context*)client->data; 
+    if (cc->ctx != NULL) {
+        ctx_append(cc->ctx, buf, nread);
     } else {
-        ctx = new_ctx(client, buf, nread);
-        client->data = ctx; 
+        cc->ctx = new_ctx(client, buf, nread, __unattach_ctx_from_client);
     }
-    ctx_run(ctx);
+    ctx_run(cc->ctx);
 }
 
 void alloc_buf(uv_handle_t* handle, size_t suggested_size, uv_buf_t *buf) {
-    buf->base = malloc(suggested_size);
-    buf->len = suggested_size;
+    client_context* cc = (client_context*)handle->data;
+    *buf = bp_get_buf(cc->buf_pool, DEFAULT_BUF_CAP);
 }
 
 void on_connection(uv_stream_t *server, int status) {
@@ -83,7 +97,10 @@ void on_connection(uv_stream_t *server, int status) {
         uv_close((uv_handle_t*)client, on_close);
         return;
     }
-    client->data = NULL;
+    client_context* cc = (client_context*)malloc(sizeof(client_context));
+    cc->buf_pool = ((server_context*)server->data)->buf_pool;
+    cc->ctx = NULL;
+    client->data = cc;
 
     uv_read_start((uv_stream_t*)client, alloc_buf, tcp_on_read);
 }
@@ -115,6 +132,10 @@ void init_loop(void* arg) {
     } else {
         printf("listen result is %d\n", r);
     }
+    
+    server_context* sc = (server_context*)malloc(sizeof(server_context));
+    sc->buf_pool = bp_init(INIT_BUFPOOL_CAP, INIT_BUFPOOL_LEN);
+    server->data = sc;
 
     uv_run(loop, UV_RUN_DEFAULT);
 }

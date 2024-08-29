@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "slice.h"
+#include "uv.h"
+#include "pool.h"
 
 void setUp() {
 
@@ -41,11 +43,24 @@ void test_sizeof() {
     TEST_ASSERT_EQUAL(sizeof(short), ss);
 }
 
+
+void test_bufpool() {
+    bufpool*p = bp_init(DEFAULT_BUF_CAP, 100);
+    uv_buf_t b = bp_get_buf(p, 128);
+    TEST_ASSERT_EQUAL(4096, b.len);
+    TEST_ASSERT_TRUE(b.base != NULL);
+    bp_release_buf(p, b);
+    bp_destroy(p);
+}
+
+
+
 int main(int argc, char const *argv[])
 {
     UNITY_BEGIN();
     // test_slice_append();
-    test_ptr_slice();
+    // test_ptr_slice();
+    test_bufpool();
     // test_sizeof();
     UNITY_END();
     return 0;

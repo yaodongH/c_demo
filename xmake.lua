@@ -14,9 +14,10 @@ target("test_add")
 
 target("test_slice")
     set_kind("binary")
-    add_files("src/http_server/slice.c", "tests/test_slice.c")
+    add_files("src/http_server/*.c", "tests/test_slice.c")
+    remove_files("src/http_server/main.c")
     add_includedirs("src/http_server")
-    add_packages("unity_test")
+    add_packages("unity_test", "libuv")
 
 target("echo_server")
     set_kind("binary")

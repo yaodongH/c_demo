@@ -29,10 +29,11 @@ struct ctx_s
     uv_buf_t fbuf;
     CTX_STATUS status;
     size_t last_buf_len;
+    unattach_ctx unattach_method;
     error err;
 };
 
-context *new_ctx(uv_stream_t *stream, const uv_buf_t *buf, size_t nread)
+context *new_ctx(uv_stream_t *stream, const uv_buf_t *buf, size_t nread, unattach_ctx unattach_method)
 {
     context *ctx = (context *)malloc(sizeof(context));
     char *data = malloc(nread);
@@ -50,6 +51,7 @@ context *new_ctx(uv_stream_t *stream, const uv_buf_t *buf, size_t nread)
     ctx->client = stream;
     ctx->status = CTX_INIT;
     ctx->last_buf_len = 0;
+    ctx->unattach_method = unattach_method;
     for (int i = 0; i < slice_len(global_middleware); i++)
     {
         middleware m;
@@ -276,12 +278,16 @@ void ctx_done(context *ctx)
         ctx_flush(ctx);
     }
 
-    if (ctx->client->data == ctx) {
-        ctx->client->data = NULL;
+    if (ctx->unattach_method != NULL) {
+        ctx->unattach_method(ctx);
     }
 
     if (old != CTX_FLUSHING)
     {
         ctx_release(ctx);
     }
+}
+
+uv_stream_t* ctx_get_client(context* ctx) {
+    return ctx->client;
 }
