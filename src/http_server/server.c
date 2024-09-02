@@ -29,34 +29,6 @@ void on_close(uv_handle_t *h)
     free(h);
 }
 
-void after_write(uv_write_t *req, int status)
-{
-    if (status < 0)
-    {
-        fprintf(stderr, "write to client fail %s\n", uv_strerror(status));
-    }
-
-    write_t *wr = (write_t *)req;
-    free(wr->b.base);
-    free(wr);
-}
-
-// void echo_read(uv_stream_t* client, ssize_t nread, uv_buf_t* buf) {
-//     if (nread < 0) {
-//         if (nread != UV_EOF) {
-//             fprintf(stderr, "read data error: %s\n", uv_strerror(nread));
-//         }
-//         uv_close((uv_handle_t*)client, on_close);
-//         return;
-//     }
-
-//     write_t *wr = malloc(sizeof(write_t));
-//     char* base = malloc(nread);
-//     wr->b = uv_buf_init(base, nread);
-//     memcpy(wr->b.base, buf->base, nread);
-//     uv_write((uv_write_t*)wr, client, &(wr->b), nread, after_write);
-// }
-
 void __unattach_ctx_from_client(context *ctx)
 {
     client_context *cc = (client_context *)ctx_get_client(ctx)->data;

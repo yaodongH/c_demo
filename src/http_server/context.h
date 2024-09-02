@@ -6,6 +6,8 @@
 
 struct ctx_s;
 
+// typedef struct wr write_t;
+
 typedef void (*middleware)(struct ctx_s* ctx);
 typedef void (*unattach_ctx)(struct ctx_s* ctx);
 

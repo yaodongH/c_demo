@@ -44,10 +44,17 @@ uv_buf_t buf_realloc(uv_buf_t b, size_t cap) {
     //TODO:针对由外部分配的buf
     // if (*(base - BUF_HEAD_LEN) != 0x2b && *(base - BUF_HEAD_LEN +1)!=0x2b) { 
     // }
+    bufcap bc;
+    memcpy(bc.capBytes, b.base - sizeof(size_t), sizeof(size_t));
+    if(bc.cap > cap) {
+        b.len = cap;
+        return b;
+    }
+
     char * base = b.base - BUF_HEAD_LEN;
     base = (char*)realloc(base, cap + BUF_HEAD_LEN);
-    bufcap bc = {.cap = cap};
-    memcpy(base +2, bc.capBytes, sizeof(size_t));
+    bufcap bc1 = {.cap = cap};
+    memcpy(base +2, bc1.capBytes, sizeof(size_t));
     return uv_buf_init(base, cap);
 }
 
