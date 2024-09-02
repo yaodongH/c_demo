@@ -43,12 +43,22 @@ void test_sizeof() {
     TEST_ASSERT_EQUAL(sizeof(short), ss);
 }
 
+typedef union {
+    size_t s;
+    char bytes[sizeof(size_t)];
+} cap_u;
 
 void test_bufpool() {
     bufpool*p = bp_init(DEFAULT_BUF_CAP, 100);
     uv_buf_t b = bp_get_buf(p, 128);
     TEST_ASSERT_EQUAL(4096, b.len);
     TEST_ASSERT_TRUE(b.base != NULL);
+    b = bp_get_buf(p, 8192);
+    TEST_ASSERT_EQUAL(8192, b.len);
+    cap_u cu;
+    memcpy(cu.bytes, b.base - sizeof(size_t), sizeof(size_t));
+
+    TEST_ASSERT_EACH_EQUAL(8192+2+sizeof(size_t), cu.s);
     bp_release_buf(p, b);
     bp_destroy(p);
 }

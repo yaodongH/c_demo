@@ -5,6 +5,7 @@
 #include "slice.h"
 #include "middleware.h"
 #include "utilityies.h"
+#include "pool.h"
 
 extern slice *global_middleware;
 
@@ -30,6 +31,7 @@ struct ctx_s
     CTX_STATUS status;
     size_t last_buf_len;
     unattach_ctx unattach_method;
+    bufpool* bpool;
     error err;
 };
 
